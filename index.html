@@ -22,7 +22,6 @@
             align-items: center;
             overflow-x: hidden;
             user-select: none;
-            -webkit-user-select: none;
         }
 
         #header { margin-top: 15px; text-align: center; color: #ad1457; }
@@ -36,7 +35,6 @@
             padding: 5px;
             border-radius: 8px;
             margin-top: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         .cell {
@@ -44,7 +42,6 @@
             height: var(--cell-size);
             background-color: #fff;
             border-radius: 4px;
-            transition: background 0.2s;
         }
 
         .cell.filled { background-color: var(--primary-pink); }
@@ -52,13 +49,13 @@
         #pieces-container {
             margin-top: 25px;
             display: flex;
-            gap: 15px;
+            gap: 20px;
             height: 120px;
             justify-content: center;
             align-items: center;
-            width: 100%;
         }
 
+        /* 核心修正：強制方塊保持比例 */
         .piece {
             display: grid;
             gap: 2px;
@@ -66,23 +63,23 @@
             border: 2px solid transparent;
             border-radius: 8px;
             cursor: pointer;
-            background: rgba(255,255,255,0.3);
-            transition: all 0.2s;
+            background: rgba(255,255,255,0.4);
         }
 
         .piece.selected {
             border-color: var(--selected-color);
             background: white;
             transform: scale(1.1);
-            box-shadow: 0 0 10px rgba(236, 64, 122, 0.3);
         }
 
         .piece-cell {
             width: 20px;
             height: 20px;
-            background-color: var(--primary-pink);
             border-radius: 3px;
         }
+
+        .piece-cell.active { background-color: var(--primary-pink); }
+        .piece-cell.empty { background-color: transparent; }
 
         #quote-overlay {
             position: fixed;
@@ -91,41 +88,32 @@
             background: white;
             padding: 25px;
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             text-align: center;
             z-index: 100;
             transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            width: 85%;
-            max-width: 320px;
+            width: 80%;
         }
 
         #quote-overlay.show { transform: translate(-50%, -50%) scale(1); }
-        #quote-text { color: #d81b60; font-size: 1.3rem; font-weight: bold; line-height: 1.5; }
-        
-        button {
-            margin-top: 20px; padding: 10px 25px;
-            border-radius: 25px; border: none;
-            background: var(--primary-pink); color: white;
-            font-weight: bold; cursor: pointer;
-            font-size: 1rem;
-        }
+        #quote-text { color: #d81b60; font-size: 1.2rem; font-weight: bold; }
+        button { margin-top: 15px; padding: 10px 20px; border-radius: 20px; border: none; background: var(--primary-pink); color: white; }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <h2 style="margin-bottom: 5px;">母親節快樂 ❤️</h2>
-    <p style="margin-top: 0; font-size: 0.9rem;">選一個方塊，再點格子放入</p>
+    <h3>母親節快樂 ❤️</h3>
+    <p>選下方方塊，點格子放置</p>
 </div>
 
 <div id="grid"></div>
-
 <div id="pieces-container"></div>
 
 <div id="quote-overlay">
-    <div style="font-size: 2.5rem; margin-bottom: 10px;">💖</div>
+    <div style="font-size: 2.5rem;">💖</div>
     <div id="quote-text"></div>
-    <button onclick="closeQuote()">繼續愛媽咪</button>
+    <button onclick="closeQuote()">繼續遊戲</button>
 </div>
 
 <script>
@@ -133,25 +121,21 @@
     let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
     let selectedPiece = null;
 
-    // 定義各種形狀
     const SHAPES = [
-        { shape: [[1, 1], [1, 1]] }, // 田字
-        { shape: [[1, 1, 1, 1]] },    // 一字
-        { shape: [[1, 1, 1]] },       // 短一字
-        { shape: [[1, 0], [1, 0], [1, 1]] }, // L字
-        { shape: [[0, 1], [0, 1], [1, 1]] }, // 倒L
-        { shape: [[1, 1, 1], [0, 1, 0]] },    // T字
-        { shape: [[1]] }               // 單格
+        [[1, 1], [1, 1]], // 田字
+        [[1, 1, 1, 1]],   // 一字
+        [[1, 1, 1]],      // 短一
+        [[1, 0], [1, 0], [1, 1]], // L
+        [[0, 1], [0, 1], [1, 1]], // 倒L
+        [[1, 1, 1], [0, 1, 0]]    // T
     ];
 
     const quotes = [
-        "媽咪，母親節快樂！多謝妳一直咁錫我 ❤️",
-        "妳係世界上最溫柔、最強大嘅媽咪！",
-        "雖然我而家唔喺澳門，但我心裡一直掛住妳！",
-        "祝媽咪日日都咁開心，永遠都咁靚！",
-        "有妳喺度，呢個家先至最溫暖。",
-        "媽咪，妳玩 Block Blast 嘅技術真係進步神速！",
-        "多謝妳包容我嘅一切，我愛妳！"
+        "媽咪，多謝妳一直咁錫我！❤️",
+        "妳係全宇宙最正嘅媽咪！",
+        "祝媽咪母親節快樂，日日開心！",
+        "雖然唔喺澳門，但我心裡一直掛住妳！",
+        "媽咪消得好勁！愛妳爆棚！"
     ];
 
     function initGame() {
@@ -161,8 +145,8 @@
             for (let c = 0; c < GRID_SIZE; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                cell.onclick = () => handleCellClick(r, c);
                 cell.id = `cell-${r}-${c}`;
+                cell.onclick = () => handleCellClick(r, c);
                 gridEl.appendChild(cell);
             }
         }
@@ -173,28 +157,22 @@
         const container = document.getElementById('pieces-container');
         container.innerHTML = '';
         for (let i = 0; i < 3; i++) {
-            const shapeData = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+            const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
             const pieceEl = document.createElement('div');
             pieceEl.className = 'piece';
-            
-            const cols = shapeData.shape[0].length;
-            pieceEl.style.gridTemplateColumns = `repeat(${cols}, 20px)`;
+            pieceEl.style.gridTemplateColumns = `repeat(${shape[0].length}, 20px)`;
             
             pieceEl.onclick = (e) => {
                 document.querySelectorAll('.piece').forEach(p => p.classList.remove('selected'));
                 pieceEl.classList.add('selected');
-                selectedPiece = shapeData.shape;
+                selectedPiece = shape;
                 e.stopPropagation();
             };
 
-            shapeData.shape.forEach(row => {
+            shape.forEach(row => {
                 row.forEach(val => {
                     const c = document.createElement('div');
-                    c.style.width = '20px';
-                    c.style.height = '20px';
-                    if (val) {
-                        c.className = 'piece-cell';
-                    }
+                    c.className = val ? 'piece-cell active' : 'piece-cell empty';
                     pieceEl.appendChild(c);
                 });
             });
@@ -204,19 +182,16 @@
 
     function handleCellClick(r, c) {
         if (!selectedPiece) return;
-
         if (canPlace(selectedPiece, r, c)) {
             place(selectedPiece, r, c);
-            const selectedEl = document.querySelector('.piece.selected');
-            selectedEl.style.visibility = 'hidden';
-            selectedEl.classList.remove('selected');
-            
+            const sel = document.querySelector('.piece.selected');
+            sel.style.visibility = 'hidden';
+            sel.classList.remove('selected');
             selectedPiece = null;
             checkLines();
-
-            // 檢查是否還有可見方塊，沒有則刷新
-            const visiblePieces = Array.from(document.querySelectorAll('.piece')).filter(p => p.style.visibility !== 'hidden');
-            if (visiblePieces.length === 0) renderPieces();
+            if (Array.from(document.querySelectorAll('.piece')).every(p => p.style.visibility === 'hidden')) {
+                renderPieces();
+            }
         }
     }
 
@@ -242,41 +217,26 @@
     }
 
     function checkLines() {
-        let rowsToClear = [];
-        let colsToClear = [];
-
-        for (let r = 0; r < GRID_SIZE; r++) {
-            if (grid[r].every(v => v === 1)) rowsToClear.push(r);
+        let rows = [], cols = [];
+        for (let i = 0; i < GRID_SIZE; i++) {
+            if (grid[i].every(v => v === 1)) rows.push(i);
+            if (grid.every(row => row[i] === 1)) cols.push(i);
         }
-        for (let c = 0; c < GRID_SIZE; c++) {
-            let colFilled = true;
-            for (let r = 0; r < GRID_SIZE; r++) {
-                if (!grid[r][c]) colFilled = false;
-            }
-            if (colFilled) colsToClear.push(c);
-        }
-
-        if (rowsToClear.length > 0 || colsToClear.length > 0) {
-            rowsToClear.forEach(r => {
-                for (let c = 0; c < GRID_SIZE; c++) grid[r][c] = 0;
-            });
-            colsToClear.forEach(c => {
-                for (let r = 0; r < GRID_SIZE; r++) grid[r][c] = 0;
-            });
-            
+        if (rows.length || cols.length) {
+            rows.forEach(r => grid[r].fill(0));
+            cols.forEach(c => grid.forEach(row => row[c] = 0));
             setTimeout(() => {
-                updateGridUI();
+                updateUI();
                 showQuote();
             }, 300);
         }
     }
 
-    function updateGridUI() {
+    function updateUI() {
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
-                const el = document.getElementById(`cell-${r}-${c}`);
-                if (grid[r][c]) el.classList.add('filled');
-                else el.classList.remove('filled');
+                const cell = document.getElementById(`cell-${r}-${c}`);
+                grid[r][c] ? cell.classList.add('filled') : cell.classList.remove('filled');
             }
         }
     }
@@ -286,9 +246,7 @@
         document.getElementById('quote-overlay').classList.add('show');
     }
 
-    function closeQuote() {
-        document.getElementById('quote-overlay').classList.remove('show');
-    }
+    function closeQuote() { document.getElementById('quote-overlay').classList.remove('show'); }
 
     initGame();
 </script>
