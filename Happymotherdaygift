@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>媽咪專屬 Block Blast ❤️</title>
+    <style>
+        :root {
+            --bg-color: #fce4ec;
+            --grid-bg: #f8bbd0;
+            --cell-size: 40px;
+            --primary-pink: #f06292;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        #header {
+            margin-top: 20px;
+            text-align: center;
+            color: #ad1457;
+        }
+
+        #game-container {
+            position: relative;
+            margin-top: 10px;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(8, var(--cell-size));
+            grid-template-rows: repeat(8, var(--cell-size));
+            gap: 2px;
+            background-color: var(--grid-bg);
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            background-color: #fff;
+            border-radius: 4px;
+        }
+
+        .cell.filled {
+            background-color: var(--primary-pink);
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+        }
+
+        #pieces-container {
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+            height: 120px;
+        }
+
+        .piece {
+            display: grid;
+            gap: 1px;
+            cursor: grab;
+            transition: transform 0.2s;
+        }
+
+        .piece-cell {
+            width: 25px;
+            height: 25px;
+            background-color: var(--primary-pink);
+            border-radius: 3px;
+        }
+
+        /* 語錄彈窗 */
+        #quote-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            z-index: 100;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 80%;
+            max-width: 300px;
+        }
+
+        #quote-overlay.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #quote-text {
+            color: #d81b60;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .heart {
+            color: #e91e63;
+            font-size: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <h2>母親節快樂 ❤️</h2>
+    <p>媽咪專屬 Block Blast: 消行有驚喜！</p>
+</div>
+
+<div id="game-container">
+    <div id="grid"></div>
+</div>
+
+<div id="pieces-container"></div>
+
+<div id="quote-overlay">
+    <div class="heart">❤️</div>
+    <div id="quote-text"></div>
+    <button onclick="closeQuote()" style="margin-top:10px; padding:5px 15px; border-radius:15px; border:none; background:var(--primary-pink); color:white;">繼續遊戲</button>
+</div>
+
+<script>
+    const GRID_SIZE = 8;
+    const gridElement = document.getElementById('grid');
+    const piecesContainer = document.getElementById('pieces-container');
+    const quoteOverlay = document.getElementById('quote-overlay');
+    const quoteText = document.getElementById('quote-text');
+
+    let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+
+    const quotes = [
+        "媽咪，母親節快樂！妳辛苦了 ❤️",
+        "妳係全宇宙最靚嘅媽媽！",
+        "多謝妳一直咁支持我，愛妳！",
+        "有妳喺度，呢個家先至圓滿。",
+        "祝媽咪日日都咁開心，青春常駐！",
+        "今日消掉嘅係方塊，增加嘅係我對妳嘅愛。",
+        "媽咪玩 Game 仲勁過我，佩服！",
+        "無論我行到幾遠，妳永遠係我最溫暖嘅避風港。"
+    ];
+
+    // 初始化網格
+    function createGrid() {
+        gridElement.innerHTML = '';
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.r = r;
+                cell.dataset.c = c;
+                gridElement.appendChild(cell);
+            }
+        }
+    }
+
+    // 方塊形狀定義 (簡單示例：L, I, 方塊)
+    const SHAPES = [
+        [[1, 1], [1, 1]], // Square
+        [[1, 1, 1, 1]],   // I
+        [[1, 0], [1, 0], [1, 1]], // L
+        [[1, 1, 1]], // Short I
+        [[0, 1], [1, 1], [0, 1]] // T
+    ];
+
+    function createPiece() {
+        const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+        const piece = document.createElement('div');
+        piece.className = 'piece';
+        piece.style.gridTemplateColumns = `repeat(${shape[0].length}, 25px)`;
+        piece.draggable = true;
+
+        shape.forEach((row, r) => {
+            row.forEach((value, c) => {
+                const cell = document.createElement('div');
+                if (value) cell.className = 'piece-cell';
+                piece.appendChild(cell);
+            });
+        });
+
+        // 這裡簡化處理：點擊即放入（為了方便手機操作）
+        piece.onclick = () => autoPlace(shape, piece);
+        piecesContainer.appendChild(piece);
+    }
+
+    // 自動找位置放入 (模擬 Block Blast 玩法)
+    function autoPlace(shape, pieceElement) {
+        for (let r = 0; r <= GRID_SIZE - shape.length; r++) {
+            for (let c = 0; c <= GRID_SIZE - shape[0].length; c++) {
+                if (canPlace(shape, r, c)) {
+                    place(shape, r, c);
+                    pieceElement.remove();
+                    if (piecesContainer.childElementCount === 0) fillPieces();
+                    checkLines();
+                    return;
+                }
+            }
+        }
+        alert("呢度放唔落，換一個試下！");
+    }
+
+    function canPlace(shape, row, col) {
+        for (let r = 0; r < shape.length; r++) {
+            for (let c = 0; c < shape[r].length; c++) {
+                if (shape[r][c] && grid[row + r][col + c]) return false;
+            }
+        }
+        return true;
+    }
+
+    function place(shape, row, col) {
+        for (let r = 0; r < shape.length; r++) {
+            for (let c = 0; c < shape[r].length; c++) {
+                if (shape[r][c]) {
+                    grid[row + r][col + c] = 1;
+                    const cell = document.querySelector(`.cell[data-r="${row + r}"][data-c="${col + c}"]`);
+                    cell.classList.add('filled');
+                }
+            }
+        }
+    }
+
+    function checkLines() {
+        let linesToClear = [];
+        // Check rows
+        for (let r = 0; r < GRID_SIZE; r++) {
+            if (grid[r].every(v => v === 1)) linesToClear.push({type: 'r', index: r});
+        }
+        // Check columns
+        for (let c = 0; c < GRID_SIZE; c++) {
+            let colFilled = true;
+            for (let r = 0; r < GRID_SIZE; r++) {
+                if (!grid[r][c]) colFilled = false;
+            }
+            if (colFilled) linesToClear.push({type: 'c', index: c});
+        }
+
+        if (linesToClear.length > 0) {
+            linesToClear.forEach(line => {
+                if (line.type === 'r') {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        grid[line.index][c] = 0;
+                        document.querySelector(`.cell[data-r="${line.index}"][data-c="${c}"]`).classList.remove('filled');
+                    }
+                } else {
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        grid[r][line.index] = 0;
+                        document.querySelector(`.cell[data-r="${r}"][data-c="${line.index}"]`).classList.remove('filled');
+                    }
+                }
+            });
+            showQuote();
+        }
+    }
+
+    function showQuote() {
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        quoteText.innerText = randomQuote;
+        quoteOverlay.classList.add('show');
+    }
+
+    function closeQuote() {
+        quoteOverlay.classList.remove('show');
+    }
+
+    function fillPieces() {
+        for (let i = 0; i < 3; i++) createPiece();
+    }
+
+    createGrid();
+    fillPieces();
+</script>
+
+</body>
+</html>
