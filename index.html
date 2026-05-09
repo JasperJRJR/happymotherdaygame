@@ -20,11 +20,22 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow-x: hidden;
+            overflow: hidden;
             user-select: none;
         }
 
         #header { margin-top: 15px; text-align: center; color: #ad1457; position: relative; width: 100%; }
+
+        #score-container {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #d81b60;
+            margin: 5px 0;
+            background: rgba(255,255,255,0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+        }
 
         #help-btn {
             position: absolute; right: 15px; top: 5px;
@@ -43,14 +54,15 @@
             background-color: var(--grid-bg);
             padding: 5px;
             border-radius: 8px;
-            margin-top: 10px;
+            margin-top: 5px;
+            position: relative;
         }
 
-        .cell { width: var(--cell-size); height: var(--cell-size); background-color: #fff; border-radius: 4px; }
+        .cell { width: var(--cell-size); height: var(--cell-size); background-color: #fff; border-radius: 4px; transition: background 0.2s; }
         .cell.filled { background-color: var(--primary-pink); }
 
         #pieces-container {
-            margin-top: 25px; display: flex; gap: 15px; height: 120px;
+            margin-top: 20px; display: flex; gap: 15px; height: 120px;
             justify-content: center; align-items: center; min-width: 300px;
         }
 
@@ -86,6 +98,18 @@
 
         #heart-animation.boom { transform: translate(-50%, -50%) scale(2.5); opacity: 1; }
 
+        /* 愛心雨粒子 */
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 150;
+            animation: fall linear forwards;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+
         .close-btn { 
             margin-top: 15px; padding: 10px 20px; border-radius: 20px; border: none; 
             background: var(--primary-pink); color: white; font-weight: bold; cursor: pointer;
@@ -97,6 +121,7 @@
 <div id="header">
     <div id="help-btn" onclick="toggleModal('help-modal', true)">?</div>
     <h3 style="margin: 0;">母親節快樂 ❤️</h3>
+    <div id="score-container">❤️ Score: <span id="score">0</span></div>
 </div>
 
 <div id="grid"></div>
@@ -117,7 +142,7 @@
 </div>
 
 <div id="quote-modal" class="modal">
-    <div style="font-size: 2rem; margin-bottom: 10px;">✨</div>
+    <div id="surprise-icon" style="font-size: 2rem; margin-bottom: 10px;">✨</div>
     <div id="quote-text" style="color: #d81b60; font-size: 1.2rem; font-weight: bold;"></div>
     <button class="close-btn" onclick="toggleModal('quote-modal', false)">繼續愛媽咪</button>
 </div>
@@ -126,7 +151,8 @@
     const GRID_SIZE = 8;
     let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
     let selectedPiece = null;
-    let currentShapes = []; // 追蹤當前顯示的方塊數據
+    let currentShapes = [];
+    let totalScore = 0;
 
     const SHAPES = [
         [[1, 1], [1, 1]], [[1, 1, 1, 1]], [[1, 1, 1]],
@@ -136,14 +162,8 @@
 
     const MAGIC_SHAPES = [[[1]], [[1, 1]], [[1], [1]], [[1, 1], [1, 1]]];
 
-    const quotes = [
-        "媽咪，多謝妳咁錫我！❤️",
-        "祝媽咪母親節快樂，日日開心！",
-        "雖然我唔喺澳門，但我心裡一直掛住妳！",
-        "媽咪，妳玩 Block Blast 嘅技術真係超犀利！",
-        "只要媽咪開心，我就最開心！✨",
-        "媽咪，多謝妳包容我嘅一切！愛妳！"
-    ];
+    const quotes = ["媽咪，多謝妳咁錫我！❤️", "祝媽咪母親節快樂，日日開心！", "媽咪，妳玩 Block Blast 嘅技術真係超犀利！", "只要媽咪開心，我就最開心！✨"];
+    const superQuotes = ["哇！全清空！媽咪太神了！💎", "心靈大掃除成功！送媽咪一萬個愛心！💖", "媽咪你係 Block Blast 大師級！🏆"];
 
     function initGame() {
         const gridEl = document.getElementById('grid');
@@ -163,25 +183,21 @@
     function renderPieces(customShapes = null) {
         const container = document.getElementById('pieces-container');
         container.innerHTML = '';
-        currentShapes = []; // 清空舊數據
-
+        currentShapes = [];
         for (let i = 0; i < 3; i++) {
             const shapeList = customShapes || SHAPES;
             const shape = shapeList[Math.floor(Math.random() * shapeList.length)];
             currentShapes.push({ shape: shape, used: false });
-
             const pieceEl = document.createElement('div');
             pieceEl.className = 'piece';
             pieceEl.id = `piece-${i}`;
             pieceEl.style.gridTemplateColumns = `repeat(${shape[0].length}, 20px)`;
-            
             pieceEl.onclick = (e) => {
                 document.querySelectorAll('.piece').forEach(p => p.classList.remove('selected'));
                 pieceEl.classList.add('selected');
                 selectedPiece = { shape: shape, index: i };
                 e.stopPropagation();
             };
-
             shape.forEach(row => {
                 row.forEach(val => {
                     const c = document.createElement('div');
@@ -191,28 +207,19 @@
             });
             container.appendChild(pieceEl);
         }
-        checkGameOver(); // 每次生成新方塊都要檢查
+        checkGameOver();
     }
 
     function handleCellClick(r, c) {
         if (!selectedPiece) return;
         if (canPlace(selectedPiece.shape, r, c)) {
             place(selectedPiece.shape, r, c);
-            
-            // 標記為已使用
             currentShapes[selectedPiece.index].used = true;
             document.getElementById(`piece-${selectedPiece.index}`).style.visibility = 'hidden';
-            document.getElementById(`piece-${selectedPiece.index}`).classList.remove('selected');
-            
             selectedPiece = null;
             checkLines();
-            
-            // 如果 3 個都用完了，重新生成
-            if (currentShapes.every(s => s.used)) {
-                renderPieces();
-            } else {
-                checkGameOver();
-            }
+            if (currentShapes.every(s => s.used)) renderPieces();
+            else checkGameOver();
         }
     }
 
@@ -245,37 +252,33 @@
             for(let r=0; r<GRID_SIZE; r++) if(!grid[r][i]) colFull = false;
             if (colFull) cols.push(i);
         }
-        if (rows.length || cols.length) {
+        
+        let totalLines = rows.length + cols.length;
+        if (totalLines > 0) {
+            // 計分邏輯: 200 * 2^(n-1)
+            let scoreAdd = 200 * Math.pow(2, totalLines - 1);
+            updateScore(scoreAdd);
+
             rows.forEach(r => grid[r].fill(0));
             cols.forEach(c => grid.forEach(row => row[c] = 0));
+            
             setTimeout(() => {
                 updateUI();
-                showSurprise();
+                // 檢查是否全清空
+                let isClearAll = grid.every(row => row.every(v => v === 0));
+                if (isClearAll) {
+                    updateScore(10000);
+                    showBigSurprise();
+                } else {
+                    showSurprise();
+                }
             }, 300);
         }
     }
 
-    // 核心邏輯修正：更精準的卡關檢測
-    function checkGameOver() {
-        let canPlaceAny = false;
-        
-        currentShapes.forEach(s => {
-            if (!s.used) {
-                // 遍歷棋盤每一個格子試試能不能放
-                for (let r = 0; r < GRID_SIZE; r++) {
-                    for (let c = 0; c < GRID_SIZE; c++) {
-                        if (canPlace(s.shape, r, c)) {
-                            canPlaceAny = true;
-                        }
-                    }
-                }
-            }
-        });
-
-        // 只有在畫面上還有方塊，且全部都放不下的時候才彈窗
-        if (!canPlaceAny && currentShapes.some(s => !s.used)) {
-            setTimeout(() => toggleModal('revive-modal', true), 500);
-        }
+    function updateScore(points) {
+        totalScore += points;
+        document.getElementById('score').innerText = totalScore;
     }
 
     function showSurprise() {
@@ -283,16 +286,60 @@
         heart.classList.add('boom');
         setTimeout(() => {
             heart.classList.remove('boom');
+            document.getElementById('surprise-icon').innerText = "✨";
             document.getElementById('quote-text').innerText = quotes[Math.floor(Math.random() * quotes.length)];
             toggleModal('quote-modal', true);
         }, 600);
     }
 
-    function useMagic() {
-        toggleModal('revive-modal', false);
-        // 使用復活魔法：給媽咪變出最簡單的 1x1 或 1x2 方塊
-        renderPieces(MAGIC_SHAPES);
+    // 全清空大驚喜
+    function showBigSurprise() {
+        // 噴發愛心雨
+        for(let i=0; i<30; i++) createParticle();
+        
+        const heart = document.getElementById('heart-animation');
+        heart.innerHTML = "💝"; // 變大禮盒愛心
+        heart.classList.add('boom');
+        
+        setTimeout(() => {
+            heart.classList.remove('boom');
+            heart.innerHTML = "❤️"; // 還原
+            document.getElementById('surprise-icon').innerText = "👑 SUPER CLEAR! +10000";
+            document.getElementById('quote-text').innerText = superQuotes[Math.floor(Math.random() * superQuotes.length)];
+            toggleModal('quote-modal', true);
+        }, 800);
     }
+
+    function createParticle() {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.innerHTML = ['❤️','💖','🌸','✨','🍬'][Math.floor(Math.random()*5)];
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.top = '-20px';
+        p.style.fontSize = (Math.random() * 20 + 20) + 'px';
+        p.style.duration = (Math.random() * 2 + 2) + 's';
+        p.style.animationDuration = p.style.duration;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 4000);
+    }
+
+    function checkGameOver() {
+        let canPlaceAny = false;
+        currentShapes.forEach(s => {
+            if (!s.used) {
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        if (canPlace(s.shape, r, c)) canPlaceAny = true;
+                    }
+                }
+            }
+        });
+        if (!canPlaceAny && currentShapes.some(s => !s.used)) {
+            setTimeout(() => toggleModal('revive-modal', true), 500);
+        }
+    }
+
+    function useMagic() { toggleModal('revive-modal', false); renderPieces(MAGIC_SHAPES); }
 
     function updateUI() {
         for (let r = 0; r < GRID_SIZE; r++) {
