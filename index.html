@@ -139,14 +139,14 @@
 <div id="revive-modal" class="modal">
     <div style="font-size: 3rem;">🪄</div>
     <h3>無位放喇？</h3>
-    <p>媽兒唔使驚，送妳一個<br><b>「母親節機會禮物」</b>繼續!</p>
+    <p>媽兒唔使驚，送妳一個<br><b>「母親節機會禮物」</b>繼續！</p>
     <button class="close-btn" style="background: linear-gradient(45deg, #ff80ab, #f06292);" onclick="useMagic()">變細粒方塊 ✨</button>
 </div>
 
 <div id="quote-modal" class="modal">
     <div id="surprise-icon" style="font-size: 2rem; margin-bottom: 10px;">✨</div>
     <div id="quote-text" style="color: #d81b60; font-size: 1.1rem; font-weight: bold;"></div>
-    <button class="close-btn" onclick="toggleModal('quote-modal', false)">繼續愛媽咪</button>
+    <button class="close-btn" onclick="toggleModal('quote-modal', false)">繼續愛媽兒</button>
 </div>
 
 <script>
@@ -177,53 +177,18 @@
     const quotes = [
         "媽兒，多謝妳咁錫我！❤️",
         "祝媽兒母親節快樂，日日開心！",
-        "雖然您係杭州，但我心裡一直掛住妳！",
-        "媽兒，多謝你照顧我長大！",
-        "希望媽兒玩得開心！✨",
-        "媽兒，我愛妳！"
+        "雖然你唔係澳門，但我心裡一直掛住妳！",
+        "媽兒，好勁啊！",
+        "希望媽兒玩得開心✨",
+        "媽兒，我愛妳！",
+        "媽兒, 多謝你照顧我",
+        "媽兒, 成日激你嬲唔好意思"
     ];
 
     const superQuotes = [
-        "哇！廿*水iv>
-
-<script>
-    const GRID_SIZE = 8;
-    let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
-    let selectedPiece = null;
-    let currentShapes = [];
-    let totalScore = 0;
-
-    // 正常難度方塊庫（含豎形）
-    const SHAPES = [
-        [[1, 1], [1, 1]], // 2x2
-        [[1, 1, 1, 1]],    // 1x4 橫
-        [[1], [1], [1], [1]], // 1x4 豎
-        [[1, 1, 1]],       // 1x3 橫
-        [[1], [1], [1]],    // 1x3 豎
-        [[1, 0], [1, 0], [1, 1]], // L型
-        [[0, 1], [0, 1], [1, 1]], // 鏡像L
-        [[1, 1, 1], [0, 1, 0]],   // T型
-        [[1, 1], [1, 0]],         // 小L
-        [[1, 1]],                 // 1x2 橫
-        [[1], [1]],                // 1x2 豎
-        [[1]]                      // 1x1
-    ];
-
-    const MAGIC_SHAPES = [[[1]], [[1, 1]], [[1], [1]], [[1, 1], [1, 1]]];
-
-    const quotes = [
-        "媽兒，多謝妳咁錫我！❤️",
-        "祝媽兒母親節快樂，日日開心！",
-        "雖然您係杭州，但我心裡一直掛住妳！",
-        "媽兒，多謝你照顧我長大！",
-        "希望媽兒玩得開心！✨",
-        "媽兒，我愛妳！"
-    ];
-
-    const superQuotes = [
-        "哇！恭喜媽兒全清空！好勁啊！💎",
+        "哇！全清空！媽兒好勁啊！💎",
         "送媽兒一萬個愛心！💖",
-        "媽兒你係 Block Blast 大師級！🏆"
+        "媽咪你係 Block Blast 大師級！🏆"
     ];
 
     function initGame() {
