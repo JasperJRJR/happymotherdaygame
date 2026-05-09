@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>媽咪專屬 Block Blast ❤️</title>
+    <title>媽兒專屬 Block Blast ❤️</title>
     <style>
         :root {
             --bg-color: #fce4ec;
@@ -131,7 +131,7 @@
         2. 橫向方塊：點擊格子的<b>左上角</b>放置。<br>
         3. 豎向方塊：點擊格子的<b>最上方</b>位置。<br>
         4. 填滿一行或一列即可消除並加分！<br>
-        5. <span style="color: #d81b60; font-weight: bold;">秘密驚喜：</span>全清空棋盤可得 10,000 分！
+        5. <span style="color: #d81b60; font-weight: bold;">秘密愛心驚喜：</span>全清空棋盤可得 10,000 分！
     </p>
     <button class="close-btn" onclick="toggleModal('help-modal', false)">知道喇</button>
 </div>
@@ -139,7 +139,7 @@
 <div id="revive-modal" class="modal">
     <div style="font-size: 3rem;">🪄</div>
     <h3>無位放喇？</h3>
-    <p>媽咪唔使驚，送妳一個<br><b>「愛心變變變」</b>魔法！</p>
+    <p>媽兒唔使驚，送妳一個<br><b>「母親節機會禮物」</b>繼續!</p>
     <button class="close-btn" style="background: linear-gradient(45deg, #ff80ab, #f06292);" onclick="useMagic()">變細粒方塊 ✨</button>
 </div>
 
@@ -175,18 +175,55 @@
     const MAGIC_SHAPES = [[[1]], [[1, 1]], [[1], [1]], [[1, 1], [1, 1]]];
 
     const quotes = [
-        "媽咪，多謝妳咁錫我！❤️",
-        "祝媽咪母親節快樂，日日開心！",
-        "雖然我唔喺澳門，但我心裡一直掛住妳！",
-        "媽咪，妳玩遊戲嘅技術真係超犀利！",
-        "只要媽咪開心，我就最開心！✨",
-        "媽咪，妳係世界上最溫柔嘅人！愛妳！"
+        "媽兒，多謝妳咁錫我！❤️",
+        "祝媽兒母親節快樂，日日開心！",
+        "雖然您係杭州，但我心裡一直掛住妳！",
+        "媽兒，多謝你照顧我長大！",
+        "希望媽兒玩得開心！✨",
+        "媽兒，我愛妳！"
     ];
 
     const superQuotes = [
-        "哇！全清空！媽咪太神了！💎",
-        "心靈大掃除成功！送媽咪一萬個愛心！💖",
-        "媽咪你係 Block Blast 大師級！🏆"
+        "哇！廿*水iv>
+
+<script>
+    const GRID_SIZE = 8;
+    let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+    let selectedPiece = null;
+    let currentShapes = [];
+    let totalScore = 0;
+
+    // 正常難度方塊庫（含豎形）
+    const SHAPES = [
+        [[1, 1], [1, 1]], // 2x2
+        [[1, 1, 1, 1]],    // 1x4 橫
+        [[1], [1], [1], [1]], // 1x4 豎
+        [[1, 1, 1]],       // 1x3 橫
+        [[1], [1], [1]],    // 1x3 豎
+        [[1, 0], [1, 0], [1, 1]], // L型
+        [[0, 1], [0, 1], [1, 1]], // 鏡像L
+        [[1, 1, 1], [0, 1, 0]],   // T型
+        [[1, 1], [1, 0]],         // 小L
+        [[1, 1]],                 // 1x2 橫
+        [[1], [1]],                // 1x2 豎
+        [[1]]                      // 1x1
+    ];
+
+    const MAGIC_SHAPES = [[[1]], [[1, 1]], [[1], [1]], [[1, 1], [1, 1]]];
+
+    const quotes = [
+        "媽兒，多謝妳咁錫我！❤️",
+        "祝媽兒母親節快樂，日日開心！",
+        "雖然您係杭州，但我心裡一直掛住妳！",
+        "媽兒，多謝你照顧我長大！",
+        "希望媽兒玩得開心！✨",
+        "媽兒，我愛妳！"
+    ];
+
+    const superQuotes = [
+        "哇！恭喜媽兒全清空！好勁啊！💎",
+        "送媽兒一萬個愛心！💖",
+        "媽兒你係 Block Blast 大師級！🏆"
     ];
 
     function initGame() {
