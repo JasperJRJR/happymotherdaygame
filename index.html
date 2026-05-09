@@ -24,7 +24,25 @@
             user-select: none;
         }
 
-        #header { margin-top: 15px; text-align: center; color: #ad1457; }
+        #header { margin-top: 15px; text-align: center; color: #ad1457; position: relative; width: 100%; }
+
+        /* 右上角說明按鈕 */
+        #help-btn {
+            position: absolute;
+            right: 15px;
+            top: 5px;
+            width: 30px;
+            height: 30px;
+            background: var(--primary-pink);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
 
         #grid {
             display: grid;
@@ -49,13 +67,13 @@
         #pieces-container {
             margin-top: 25px;
             display: flex;
-            gap: 20px;
+            gap: 15px;
             height: 120px;
             justify-content: center;
             align-items: center;
+            min-width: 300px;
         }
 
-        /* 核心修正：強制方塊保持比例 */
         .piece {
             display: grid;
             gap: 2px;
@@ -72,16 +90,12 @@
             transform: scale(1.1);
         }
 
-        .piece-cell {
-            width: 20px;
-            height: 20px;
-            border-radius: 3px;
-        }
-
+        .piece-cell { width: 20px; height: 20px; border-radius: 3px; }
         .piece-cell.active { background-color: var(--primary-pink); }
         .piece-cell.empty { background-color: transparent; }
 
-        #quote-overlay {
+        /* 通用彈窗樣式 */
+        .modal {
             position: fixed;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
@@ -93,27 +107,50 @@
             z-index: 100;
             transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             width: 80%;
+            max-width: 320px;
         }
 
-        #quote-overlay.show { transform: translate(-50%, -50%) scale(1); }
-        #quote-text { color: #d81b60; font-size: 1.2rem; font-weight: bold; }
-        button { margin-top: 15px; padding: 10px 20px; border-radius: 20px; border: none; background: var(--primary-pink); color: white; }
+        .modal.show { transform: translate(-50%, -50%) scale(1); }
+        .modal h3 { color: #ad1457; margin-top: 0; }
+        .modal p { font-size: 0.95rem; line-height: 1.6; color: #555; }
+        
+        .close-btn { 
+            margin-top: 15px; padding: 10px 20px; 
+            border-radius: 20px; border: none; 
+            background: var(--primary-pink); color: white; 
+            font-weight: bold; cursor: pointer;
+        }
+
+        .highlight { color: #d81b60; font-weight: bold; text-decoration: underline; }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <h3>母親節快樂 ❤️</h3>
-    <p>選下方方塊，點格子放置</p>
+    <div id="help-btn" onclick="toggleModal('help-modal', true)">?</div>
+    <h3 style="margin: 0;">母親節快樂 ❤️</h3>
+    <p style="font-size: 0.8rem; margin: 5px 0;">媽咪專屬 Block Blast</p>
 </div>
 
 <div id="grid"></div>
 <div id="pieces-container"></div>
 
-<div id="quote-overlay">
+<!-- 說明彈窗 -->
+<div id="help-modal" class="modal">
+    <h3>如何玩？ 💡</h3>
+    <p>1. 點擊下方方塊來<span class="highlight">選取</span>它。</p>
+    <p>2. 點擊上方格子的<span class="highlight">左上角位置</span>來放置方塊。</p>
+    <p style="font-size: 0.8rem; background: #fff3f8; padding: 10px; border-radius: 10px;">
+        提示：無論形狀多大，只需點擊你想放置區域的「最左上角」那格即可！
+    </p>
+    <button class="close-btn" onclick="toggleModal('help-modal', false)">明白晒！</button>
+</div>
+
+<!-- 語錄彈窗 -->
+<div id="quote-modal" class="modal">
     <div style="font-size: 2.5rem;">💖</div>
-    <div id="quote-text"></div>
-    <button onclick="closeQuote()">繼續遊戲</button>
+    <div id="quote-text" style="color: #d81b60; font-size: 1.2rem; font-weight: bold;"></div>
+    <button class="close-btn" onclick="toggleModal('quote-modal', false)">繼續愛媽咪</button>
 </div>
 
 <script>
@@ -122,20 +159,17 @@
     let selectedPiece = null;
 
     const SHAPES = [
-        [[1, 1], [1, 1]], // 田字
-        [[1, 1, 1, 1]],   // 一字
-        [[1, 1, 1]],      // 短一
-        [[1, 0], [1, 0], [1, 1]], // L
-        [[0, 1], [0, 1], [1, 1]], // 倒L
-        [[1, 1, 1], [0, 1, 0]]    // T
+        [[1, 1], [1, 1]], [[1, 1, 1, 1]], [[1, 1, 1]],
+        [[1, 0], [1, 0], [1, 1]], [[0, 1], [0, 1], [1, 1]],
+        [[1, 1, 1], [0, 1, 0]], [[1, 1], [1, 0]], [[1]]
     ];
 
     const quotes = [
-        "媽咪，多謝妳一直咁錫我！❤️",
-        "妳係全宇宙最正嘅媽咪！",
-        "祝媽咪母親節快樂，日日開心！",
-        "雖然唔喺澳門，但我心裡一直掛住妳！",
-        "媽咪消得好勁！愛妳爆棚！"
+        "媽咪，多謝妳咁多年嘅照顧！❤️",
+        "祝媽咪母親節快樂，日日都咁靚！",
+        "雖然我唔喺身邊，但我心裡面好掛住妳！",
+        "媽咪消得好快！我對妳嘅愛又爆燈喇！",
+        "妳係全家最重要嘅支柱，辛苦晒妳！"
     ];
 
     function initGame() {
@@ -220,7 +254,9 @@
         let rows = [], cols = [];
         for (let i = 0; i < GRID_SIZE; i++) {
             if (grid[i].every(v => v === 1)) rows.push(i);
-            if (grid.every(row => row[i] === 1)) cols.push(i);
+            let colFull = true;
+            for(let r=0; r<GRID_SIZE; r++) if(!grid[r][i]) colFull = false;
+            if (colFull) cols.push(i);
         }
         if (rows.length || cols.length) {
             rows.forEach(r => grid[r].fill(0));
@@ -241,12 +277,14 @@
         }
     }
 
-    function showQuote() {
-        document.getElementById('quote-text').innerText = quotes[Math.floor(Math.random() * quotes.length)];
-        document.getElementById('quote-overlay').classList.add('show');
+    function toggleModal(id, show) {
+        document.getElementById(id).classList.toggle('show', show);
     }
 
-    function closeQuote() { document.getElementById('quote-overlay').classList.remove('show'); }
+    function showQuote() {
+        document.getElementById('quote-text').innerText = quotes[Math.floor(Math.random() * quotes.length)];
+        toggleModal('quote-modal', true);
+    }
 
     initGame();
 </script>
