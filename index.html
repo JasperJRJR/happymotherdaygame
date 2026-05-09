@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>測試模式 - 媽咪專屬 Block Blast ❤️</title>
+    <title>媽咪專屬 Block Blast ❤️</title>
     <style>
         :root {
             --bg-color: #fce4ec;
@@ -35,6 +35,15 @@
             padding: 5px 15px;
             border-radius: 20px;
             display: inline-block;
+        }
+
+        #help-btn {
+            position: absolute; right: 15px; top: 5px;
+            width: 30px; height: 30px;
+            background: var(--primary-pink); color: white;
+            border-radius: 50%; display: flex;
+            justify-content: center; align-items: center;
+            font-weight: bold; cursor: pointer;
         }
 
         #grid {
@@ -74,7 +83,7 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             text-align: center; z-index: 100;
             transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            width: 80%; max-width: 320px;
+            width: 85%; max-width: 340px;
         }
 
         .modal.show { transform: translate(-50%, -50%) scale(1); }
@@ -106,7 +115,8 @@
 <body>
 
 <div id="header">
-    <h3 style="margin: 0;">🛠️ 測試模式 (容易版)</h3>
+    <div id="help-btn" onclick="toggleModal('help-modal', true)">?</div>
+    <h3 style="margin: 0;">母親節快樂 ❤️</h3>
     <div id="score-container">❤️ Score: <span id="score">0</span></div>
 </div>
 
@@ -114,10 +124,29 @@
 <div id="pieces-container"></div>
 <div id="heart-animation">❤️</div>
 
+<div id="help-modal" class="modal">
+    <h3 style="color: #ad1457;">玩法說明 💡</h3>
+    <p style="text-align: left; font-size: 0.9rem; line-height: 1.6;">
+        1. 點擊下方方塊進行選取。<br>
+        2. 橫向方塊：點擊格子的<b>左上角</b>放置。<br>
+        3. 豎向方塊：點擊格子的<b>最上方</b>位置。<br>
+        4. 填滿一行或一列即可消除並加分！<br>
+        5. <span style="color: #d81b60; font-weight: bold;">秘密驚喜：</span>全清空棋盤可得 10,000 分！
+    </p>
+    <button class="close-btn" onclick="toggleModal('help-modal', false)">知道喇</button>
+</div>
+
+<div id="revive-modal" class="modal">
+    <div style="font-size: 3rem;">🪄</div>
+    <h3>無位放喇？</h3>
+    <p>媽咪唔使驚，送妳一個<br><b>「愛心變變變」</b>魔法！</p>
+    <button class="close-btn" style="background: linear-gradient(45deg, #ff80ab, #f06292);" onclick="useMagic()">變細粒方塊 ✨</button>
+</div>
+
 <div id="quote-modal" class="modal">
     <div id="surprise-icon" style="font-size: 2rem; margin-bottom: 10px;">✨</div>
-    <div id="quote-text" style="color: #d81b60; font-size: 1.2rem; font-weight: bold;"></div>
-    <button class="close-btn" onclick="toggleModal('quote-modal', false)">關閉測試</button>
+    <div id="quote-text" style="color: #d81b60; font-size: 1.1rem; font-weight: bold;"></div>
+    <button class="close-btn" onclick="toggleModal('quote-modal', false)">繼續愛媽咪</button>
 </div>
 
 <script>
@@ -127,17 +156,38 @@
     let currentShapes = [];
     let totalScore = 0;
 
-    // 【修改重點】：測試專用的簡單方塊（包含豎長條）
-    const TEST_SHAPES = [
-        [[1]],             // 1x1 單點
-        [[1], [1]],        // 2x1 豎長條
-        [[1], [1], [1]],   // 3x1 豎長條
-        [[1, 1]],          // 1x2 橫長條
-        [[1, 1], [1, 1]]   // 2x2 方塊
+    // 正常難度方塊庫（含豎形）
+    const SHAPES = [
+        [[1, 1], [1, 1]], // 2x2
+        [[1, 1, 1, 1]],    // 1x4 橫
+        [[1], [1], [1], [1]], // 1x4 豎
+        [[1, 1, 1]],       // 1x3 橫
+        [[1], [1], [1]],    // 1x3 豎
+        [[1, 0], [1, 0], [1, 1]], // L型
+        [[0, 1], [0, 1], [1, 1]], // 鏡像L
+        [[1, 1, 1], [0, 1, 0]],   // T型
+        [[1, 1], [1, 0]],         // 小L
+        [[1, 1]],                 // 1x2 橫
+        [[1], [1]],                // 1x2 豎
+        [[1]]                      // 1x1
     ];
 
-    const quotes = ["測試：消除成功！❤️", "加油，快達成全消！"];
-    const superQuotes = ["🏆 成功觸發：全清空獎勵 10000 分！", "愛心雨測試成功！💖"];
+    const MAGIC_SHAPES = [[[1]], [[1, 1]], [[1], [1]], [[1, 1], [1, 1]]];
+
+    const quotes = [
+        "媽咪，多謝妳咁錫我！❤️",
+        "祝媽咪母親節快樂，日日開心！",
+        "雖然我唔喺澳門，但我心裡一直掛住妳！",
+        "媽咪，妳玩遊戲嘅技術真係超犀利！",
+        "只要媽咪開心，我就最開心！✨",
+        "媽咪，妳係世界上最溫柔嘅人！愛妳！"
+    ];
+
+    const superQuotes = [
+        "哇！全清空！媽咪太神了！💎",
+        "心靈大掃除成功！送媽咪一萬個愛心！💖",
+        "媽咪你係 Block Blast 大師級！🏆"
+    ];
 
     function initGame() {
         const gridEl = document.getElementById('grid');
@@ -154,12 +204,13 @@
         renderPieces();
     }
 
-    function renderPieces() {
+    function renderPieces(customShapes = null) {
         const container = document.getElementById('pieces-container');
         container.innerHTML = '';
         currentShapes = [];
         for (let i = 0; i < 3; i++) {
-            const shape = TEST_SHAPES[Math.floor(Math.random() * TEST_SHAPES.length)];
+            const shapeList = customShapes || SHAPES;
+            const shape = shapeList[Math.floor(Math.random() * shapeList.length)];
             currentShapes.push({ shape: shape, used: false });
             const pieceEl = document.createElement('div');
             pieceEl.className = 'piece';
@@ -180,6 +231,7 @@
             });
             container.appendChild(pieceEl);
         }
+        checkGameOver();
     }
 
     function handleCellClick(r, c) {
@@ -188,9 +240,11 @@
             place(selectedPiece.shape, r, c);
             currentShapes[selectedPiece.index].used = true;
             document.getElementById(`piece-${selectedPiece.index}`).style.visibility = 'hidden';
+            document.getElementById(`piece-${selectedPiece.index}`).classList.remove('selected');
             selectedPiece = null;
             checkLines();
             if (currentShapes.every(s => s.used)) renderPieces();
+            else checkGameOver();
         }
     }
 
@@ -230,6 +284,7 @@
             updateScore(scoreAdd);
             rows.forEach(r => grid[r].fill(0));
             cols.forEach(c => grid.forEach(row => row[c] = 0));
+            
             setTimeout(() => {
                 updateUI();
                 let isClearAll = grid.every(row => row.every(v => v === 0));
@@ -276,7 +331,7 @@
     function createParticle() {
         const p = document.createElement('div');
         p.className = 'particle';
-        p.innerHTML = ['❤️','💖','🌸','✨'][Math.floor(Math.random()*4)];
+        p.innerHTML = ['❤️','💖','🌸','✨','🍬'][Math.floor(Math.random()*5)];
         p.style.left = Math.random() * 100 + 'vw';
         p.style.top = '-20px';
         p.style.fontSize = (Math.random() * 20 + 20) + 'px';
@@ -284,6 +339,24 @@
         document.body.appendChild(p);
         setTimeout(() => p.remove(), 4000);
     }
+
+    function checkGameOver() {
+        let canPlaceAny = false;
+        currentShapes.forEach(s => {
+            if (!s.used) {
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        if (canPlace(s.shape, r, c)) canPlaceAny = true;
+                    }
+                }
+            }
+        });
+        if (!canPlaceAny && currentShapes.some(s => !s.used)) {
+            setTimeout(() => toggleModal('revive-modal', true), 500);
+        }
+    }
+
+    function useMagic() { toggleModal('revive-modal', false); renderPieces(MAGIC_SHAPES); }
 
     function updateUI() {
         for (let r = 0; r < GRID_SIZE; r++) {
