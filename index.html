@@ -10,6 +10,7 @@
             --grid-bg: #f8bbd0;
             --cell-size: 40px;
             --primary-pink: #f06292;
+            --selected-color: #ec407a;
         }
 
         body {
@@ -19,20 +20,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            touch-action: none;
             overflow: hidden;
+            user-select: none;
         }
 
-        #header {
-            margin-top: 20px;
-            text-align: center;
-            color: #ad1457;
-        }
-
-        #game-container {
-            position: relative;
-            margin-top: 10px;
-        }
+        #header { margin-top: 15px; text-align: center; color: #ad1457; }
 
         #grid {
             display: grid;
@@ -42,6 +34,7 @@
             background-color: var(--grid-bg);
             padding: 5px;
             border-radius: 8px;
+            margin-top: 10px;
         }
 
         .cell {
@@ -49,39 +42,46 @@
             height: var(--cell-size);
             background-color: #fff;
             border-radius: 4px;
+            transition: background 0.2s;
         }
 
-        .cell.filled {
-            background-color: var(--primary-pink);
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
-        }
+        .cell.filled { background-color: var(--primary-pink); }
+        .cell.preview { background-color: #fce4ec; border: 1px dashed var(--primary-pink); }
 
         #pieces-container {
-            margin-top: 30px;
+            margin-top: 20px;
             display: flex;
-            gap: 20px;
+            gap: 15px;
             height: 120px;
+            justify-content: center;
+            width: 100%;
         }
 
         .piece {
             display: grid;
-            gap: 1px;
-            cursor: grab;
-            transition: transform 0.2s;
+            gap: 2px;
+            padding: 5px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .piece.selected {
+            border-color: var(--selected-color);
+            background: white;
+            transform: scale(1.1);
         }
 
         .piece-cell {
-            width: 25px;
-            height: 25px;
+            width: 20px;
+            height: 20px;
             background-color: var(--primary-pink);
-            border-radius: 3px;
+            border-radius: 2px;
         }
 
-        /* 語錄彈窗 */
         #quote-overlay {
             position: fixed;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
             background: white;
             padding: 20px;
@@ -91,125 +91,122 @@
             z-index: 100;
             transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             width: 80%;
-            max-width: 300px;
         }
 
-        #quote-overlay.show {
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        #quote-text {
-            color: #d81b60;
-            font-size: 1.2rem;
+        #quote-overlay.show { transform: translate(-50%, -50%) scale(1); }
+        #quote-text { color: #d81b60; font-size: 1.2rem; font-weight: bold; }
+        
+        button {
+            margin-top: 15px; padding: 8px 20px;
+            border-radius: 20px; border: none;
+            background: var(--primary-pink); color: white;
             font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .heart {
-            color: #e91e63;
-            font-size: 2rem;
         }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <h2>母親節快樂 ❤️</h2>
-    <p>媽咪專屬 Block Blast: 消行有驚喜！</p>
+    <h3>母親節快樂 ❤️</h3>
+    <p>玩法：先點下方方塊，再點格子放入</p>
 </div>
 
-<div id="game-container">
-    <div id="grid"></div>
-</div>
+<div id="grid"></div>
 
 <div id="pieces-container"></div>
 
 <div id="quote-overlay">
-    <div class="heart">❤️</div>
+    <div style="font-size: 2rem;">💖</div>
     <div id="quote-text"></div>
-    <button onclick="closeQuote()" style="margin-top:10px; padding:5px 15px; border-radius:15px; border:none; background:var(--primary-pink); color:white;">繼續遊戲</button>
+    <button onclick="closeQuote()">繼續玩</button>
 </div>
 
 <script>
     const GRID_SIZE = 8;
-    const gridElement = document.getElementById('grid');
-    const piecesContainer = document.getElementById('pieces-container');
-    const quoteOverlay = document.getElementById('quote-overlay');
-    const quoteText = document.getElementById('quote-text');
-
     let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+    let selectedPiece = null;
+    let selectedPieceIndex = -1;
 
-    const quotes = [
-        "媽咪，母親節快樂！妳辛苦了 ❤️",
-        "妳係全宇宙最靚嘅媽媽！",
-        "多謝妳一直咁支持我，愛妳！",
-        "有妳喺度，呢個家先至圓滿。",
-        "祝媽咪日日都咁開心，青春常駐！",
-        "今日消掉嘅係方塊，增加嘅係我對妳嘅愛。",
-        "媽咪玩 Game 仲勁過我，佩服！",
-        "無論我行到幾遠，妳永遠係我最溫暖嘅避風港。"
+    const SHAPES = [
+        { shape: [[1, 1], [1, 1]] }, // Square
+        { shape: [[1, 1, 1, 1]] },    // Long I
+        { shape: [[1, 1, 1]] },       // Short I
+        { shape: [[1, 0], [1, 0], [1, 1]] }, // L
+        { shape: [[0, 1], [0, 1], [1, 1]] }, // Reverse L
+        { shape: [[1, 1], [0, 1], [0, 1]] }, // 7
+        { shape: [[1, 1, 1], [0, 1, 0]] }    // T
     ];
 
-    // 初始化網格
-    function createGrid() {
-        gridElement.innerHTML = '';
+    const quotes = [
+        "媽咪，多謝妳咁多年嘅照顧！❤️",
+        "妳係全家最重要嘅支柱！",
+        "祝媽咪母親節快樂，日日都咁靚！",
+        "有妳喺度，我先可以安心成長。",
+        "雖然我唔喺身邊，但我心裡面好掛住妳！",
+        "媽咪，消得好！我對妳嘅愛都爆燈咗！"
+    ];
+
+    function initGame() {
+        const gridEl = document.getElementById('grid');
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                cell.dataset.r = r;
-                cell.dataset.c = c;
-                gridElement.appendChild(cell);
+                cell.onclick = () => handleCellClick(r, c);
+                cell.id = `cell-${r}-${c}`;
+                gridEl.appendChild(cell);
             }
         }
+        renderPieces();
     }
 
-    // 方塊形狀定義 (簡單示例：L, I, 方塊)
-    const SHAPES = [
-        [[1, 1], [1, 1]], // Square
-        [[1, 1, 1, 1]],   // I
-        [[1, 0], [1, 0], [1, 1]], // L
-        [[1, 1, 1]], // Short I
-        [[0, 1], [1, 1], [0, 1]] // T
-    ];
+    function renderPieces() {
+        const container = document.getElementById('pieces-container');
+        container.innerHTML = '';
+        for (let i = 0; i < 3; i++) {
+            const shapeData = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+            const pieceEl = document.createElement('div');
+            pieceEl.className = 'piece';
+            pieceEl.style.gridTemplateColumns = `repeat(${shapeData.shape[0].length}, 20px)`;
+            pieceEl.onclick = (e) => {
+                document.querySelectorAll('.piece').forEach(p => p.classList.remove('selected'));
+                pieceEl.classList.add('selected');
+                selectedPiece = shapeData.shape;
+                selectedPieceIndex = i;
+                e.stopPropagation();
+            };
 
-    function createPiece() {
-        const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-        const piece = document.createElement('div');
-        piece.className = 'piece';
-        piece.style.gridTemplateColumns = `repeat(${shape[0].length}, 25px)`;
-        piece.draggable = true;
-
-        shape.forEach((row, r) => {
-            row.forEach((value, c) => {
-                const cell = document.createElement('div');
-                if (value) cell.className = 'piece-cell';
-                piece.appendChild(cell);
+            shapeData.shape.forEach(row => {
+                row.forEach(val => {
+                    const c = document.createElement('div');
+                    if (val) c.className = 'piece-cell';
+                    pieceEl.appendChild(c);
+                });
             });
-        });
-
-        // 這裡簡化處理：點擊即放入（為了方便手機操作）
-        piece.onclick = () => autoPlace(shape, piece);
-        piecesContainer.appendChild(piece);
+            container.appendChild(pieceEl);
+        }
     }
 
-    // 自動找位置放入 (模擬 Block Blast 玩法)
-    function autoPlace(shape, pieceElement) {
-        for (let r = 0; r <= GRID_SIZE - shape.length; r++) {
-            for (let c = 0; c <= GRID_SIZE - shape[0].length; c++) {
-                if (canPlace(shape, r, c)) {
-                    place(shape, r, c);
-                    pieceElement.remove();
-                    if (piecesContainer.childElementCount === 0) fillPieces();
-                    checkLines();
-                    return;
-                }
-            }
+    function handleCellClick(r, c) {
+        if (!selectedPiece) return;
+
+        if (canPlace(selectedPiece, r, c)) {
+            place(selectedPiece, r, c);
+            const selectedEl = document.querySelector('.piece.selected');
+            selectedEl.style.visibility = 'hidden';
+            selectedEl.onclick = null;
+            
+            selectedPiece = null;
+            checkLines();
+
+            // 如果三個都放完了，刷新方塊
+            const visiblePieces = Array.from(document.querySelectorAll('.piece')).filter(p => p.style.visibility !== 'hidden');
+            if (visiblePieces.length === 0) renderPieces();
         }
-        alert("呢度放唔落，換一個試下！");
     }
 
     function canPlace(shape, row, col) {
+        if (row + shape.length > GRID_SIZE || col + shape[0].length > GRID_SIZE) return false;
         for (let r = 0; r < shape.length; r++) {
             for (let c = 0; c < shape[r].length; c++) {
                 if (shape[r][c] && grid[row + r][col + c]) return false;
@@ -223,63 +220,58 @@
             for (let c = 0; c < shape[r].length; c++) {
                 if (shape[r][c]) {
                     grid[row + r][col + c] = 1;
-                    const cell = document.querySelector(`.cell[data-r="${row + r}"][data-c="${col + c}"]`);
-                    cell.classList.add('filled');
+                    document.getElementById(`cell-${row + r}-${col + c}`).classList.add('filled');
                 }
             }
         }
     }
 
     function checkLines() {
-        let linesToClear = [];
-        // Check rows
+        let rowsToClear = [];
+        let colsToClear = [];
+
         for (let r = 0; r < GRID_SIZE; r++) {
-            if (grid[r].every(v => v === 1)) linesToClear.push({type: 'r', index: r});
+            if (grid[r].every(v => v === 1)) rowsToClear.push(r);
         }
-        // Check columns
         for (let c = 0; c < GRID_SIZE; c++) {
-            let colFilled = true;
-            for (let r = 0; r < GRID_SIZE; r++) {
-                if (!grid[r][c]) colFilled = false;
-            }
-            if (colFilled) linesToClear.push({type: 'c', index: c});
+            if (grid.every(row => row[c] === 1)) colsToClear.push(c);
         }
 
-        if (linesToClear.length > 0) {
-            linesToClear.forEach(line => {
-                if (line.type === 'r') {
-                    for (let c = 0; c < GRID_SIZE; c++) {
-                        grid[line.index][c] = 0;
-                        document.querySelector(`.cell[data-r="${line.index}"][data-c="${c}"]`).classList.remove('filled');
-                    }
-                } else {
-                    for (let r = 0; r < GRID_SIZE; r++) {
-                        grid[r][line.index] = 0;
-                        document.querySelector(`.cell[data-r="${r}"][data-c="${line.index}"]`).classList.remove('filled');
-                    }
-                }
+        if (rowsToClear.length > 0 || colsToClear.length > 0) {
+            rowsToClear.forEach(r => {
+                for (let c = 0; c < GRID_SIZE; c++) grid[r][c] = 0;
             });
-            showQuote();
+            colsToClear.forEach(c => {
+                for (let r = 0; r < GRID_SIZE; r++) grid[r][c] = 0;
+            });
+            
+            setTimeout(() => {
+                updateGridUI();
+                showQuote();
+            }, 300);
+        }
+    }
+
+    function updateGridUI() {
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const el = document.getElementById(`cell-${r}-${c}`);
+                if (grid[r][c]) el.classList.add('filled');
+                else el.classList.remove('filled');
+            }
         }
     }
 
     function showQuote() {
-        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-        quoteText.innerText = randomQuote;
-        quoteOverlay.classList.add('show');
+        document.getElementById('quote-text').innerText = quotes[Math.floor(Math.random() * quotes.length)];
+        document.getElementById('quote-overlay').classList.add('show');
     }
 
     function closeQuote() {
-        quoteOverlay.classList.remove('show');
+        document.getElementById('quote-overlay').classList.remove('show');
     }
 
-    function fillPieces() {
-        for (let i = 0; i < 3; i++) createPiece();
-    }
-
-    createGrid();
-    fillPieces();
+    initGame();
 </script>
-
 </body>
 </html>
