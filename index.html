@@ -46,21 +46,12 @@
             margin-top: 10px;
         }
 
-        .cell {
-            width: var(--cell-size);
-            height: var(--cell-size);
-            background-color: #fff;
-            border-radius: 4px;
-        }
-
+        .cell { width: var(--cell-size); height: var(--cell-size); background-color: #fff; border-radius: 4px; }
         .cell.filled { background-color: var(--primary-pink); }
 
         #pieces-container {
-            margin-top: 25px;
-            display: flex; gap: 15px;
-            height: 120px;
-            justify-content: center; align-items: center;
-            min-width: 300px;
+            margin-top: 25px; display: flex; gap: 15px; height: 120px;
+            justify-content: center; align-items: center; min-width: 300px;
         }
 
         .piece {
@@ -74,29 +65,30 @@
         .piece-cell.active { background-color: var(--primary-pink); }
         .piece-cell.empty { background-color: transparent; }
 
-        /* 彈窗樣式 */
         .modal {
             position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            background: white; padding: 25px;
-            border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            background: white; padding: 25px; border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             text-align: center; z-index: 100;
             transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             width: 80%; max-width: 320px;
         }
 
         .modal.show { transform: translate(-50%, -50%) scale(1); }
-        .modal h3 { color: #ad1457; margin-top: 0; }
-        .close-btn { 
-            margin-top: 15px; padding: 10px 20px; 
-            border-radius: 20px; border: none; 
-            background: var(--primary-pink); color: white; 
-            font-weight: bold; cursor: pointer;
+        
+        #heart-animation {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 100px; z-index: 200; pointer-events: none;
+            transition: all 0.5s ease-out; opacity: 0;
         }
 
-        .magic-btn {
-            background: linear-gradient(45deg, #ff80ab, #f06292);
-            font-size: 1.1rem; padding: 12px 25px;
+        #heart-animation.boom { transform: translate(-50%, -50%) scale(2.5); opacity: 1; }
+
+        .close-btn { 
+            margin-top: 15px; padding: 10px 20px; border-radius: 20px; border: none; 
+            background: var(--primary-pink); color: white; font-weight: bold; cursor: pointer;
         }
     </style>
 </head>
@@ -109,25 +101,23 @@
 
 <div id="grid"></div>
 <div id="pieces-container"></div>
+<div id="heart-animation">❤️</div>
 
-<!-- 說明彈窗 -->
 <div id="help-modal" class="modal">
     <h3>如何玩？ 💡</h3>
     <p>1. 點擊方塊選取。<br>2. 點擊格子的<span style="color: #d81b60; font-weight: bold;">左上角</span>放置。</p>
-    <button class="close-btn" onclick="toggleModal('help-modal', false)">知道喇</button>
+    <button class="close-btn" onclick="toggleModal('help-modal', false)">明白！</button>
 </div>
 
-<!-- 復活彈窗 -->
 <div id="revive-modal" class="modal">
     <div style="font-size: 3rem;">🪄</div>
     <h3>無位放喇？</h3>
     <p>媽咪唔使驚，送妳一個<br><b>「愛心變變變」</b>魔法！</p>
-    <button class="close-btn magic-btn" onclick="useMagic()">變細粒方塊 ✨</button>
+    <button class="close-btn" style="background: linear-gradient(45deg, #ff80ab, #f06292);" onclick="useMagic()">變細粒方塊 ✨</button>
 </div>
 
-<!-- 語錄彈窗 -->
 <div id="quote-modal" class="modal">
-    <div style="font-size: 2.5rem;">💖</div>
+    <div style="font-size: 2rem; margin-bottom: 10px;">✨</div>
     <div id="quote-text" style="color: #d81b60; font-size: 1.2rem; font-weight: bold;"></div>
     <button class="close-btn" onclick="toggleModal('quote-modal', false)">繼續愛媽咪</button>
 </div>
@@ -136,6 +126,7 @@
     const GRID_SIZE = 8;
     let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
     let selectedPiece = null;
+    let currentShapes = []; // 追蹤當前顯示的方塊數據
 
     const SHAPES = [
         [[1, 1], [1, 1]], [[1, 1, 1, 1]], [[1, 1, 1]],
@@ -143,13 +134,15 @@
         [[1, 1, 1], [0, 1, 0]], [[1, 1], [1, 0]], [[1]]
     ];
 
-    const MAGIC_SHAPES = [[[1]], [[1, 1]], [[1], [1]]];
+    const MAGIC_SHAPES = [[[1]], [[1, 1]], [[1], [1]], [[1, 1], [1, 1]]];
 
     const quotes = [
         "媽咪，多謝妳咁錫我！❤️",
         "祝媽咪母親節快樂，日日開心！",
         "雖然我唔喺澳門，但我心裡一直掛住妳！",
-        "媽咪，妳玩 Block Blast 嘅技術真係進步神速！"
+        "媽咪，妳玩 Block Blast 嘅技術真係超犀利！",
+        "只要媽咪開心，我就最開心！✨",
+        "媽咪，多謝妳包容我嘅一切！愛妳！"
     ];
 
     function initGame() {
@@ -170,17 +163,22 @@
     function renderPieces(customShapes = null) {
         const container = document.getElementById('pieces-container');
         container.innerHTML = '';
+        currentShapes = []; // 清空舊數據
+
         for (let i = 0; i < 3; i++) {
             const shapeList = customShapes || SHAPES;
             const shape = shapeList[Math.floor(Math.random() * shapeList.length)];
+            currentShapes.push({ shape: shape, used: false });
+
             const pieceEl = document.createElement('div');
             pieceEl.className = 'piece';
+            pieceEl.id = `piece-${i}`;
             pieceEl.style.gridTemplateColumns = `repeat(${shape[0].length}, 20px)`;
             
             pieceEl.onclick = (e) => {
                 document.querySelectorAll('.piece').forEach(p => p.classList.remove('selected'));
                 pieceEl.classList.add('selected');
-                selectedPiece = shape;
+                selectedPiece = { shape: shape, index: i };
                 e.stopPropagation();
             };
 
@@ -193,21 +191,24 @@
             });
             container.appendChild(pieceEl);
         }
-        checkGameOver();
+        checkGameOver(); // 每次生成新方塊都要檢查
     }
 
     function handleCellClick(r, c) {
         if (!selectedPiece) return;
-        if (canPlace(selectedPiece, r, c)) {
-            place(selectedPiece, r, c);
-            const sel = document.querySelector('.piece.selected');
-            sel.style.visibility = 'hidden';
-            sel.classList.remove('selected');
+        if (canPlace(selectedPiece.shape, r, c)) {
+            place(selectedPiece.shape, r, c);
+            
+            // 標記為已使用
+            currentShapes[selectedPiece.index].used = true;
+            document.getElementById(`piece-${selectedPiece.index}`).style.visibility = 'hidden';
+            document.getElementById(`piece-${selectedPiece.index}`).classList.remove('selected');
+            
             selectedPiece = null;
             checkLines();
             
-            const visiblePieces = Array.from(document.querySelectorAll('.piece')).filter(p => p.style.visibility !== 'hidden');
-            if (visiblePieces.length === 0) {
+            // 如果 3 個都用完了，重新生成
+            if (currentShapes.every(s => s.used)) {
                 renderPieces();
             } else {
                 checkGameOver();
@@ -249,92 +250,48 @@
             cols.forEach(c => grid.forEach(row => row[c] = 0));
             setTimeout(() => {
                 updateUI();
-                showQuote();
+                showSurprise();
             }, 300);
         }
     }
 
+    // 核心邏輯修正：更精準的卡關檢測
     function checkGameOver() {
-        const visiblePieces = Array.from(document.querySelectorAll('.piece'))
-            .filter(p => p.style.visibility !== 'hidden');
-        
-        if (visiblePieces.length === 0) return;
-
-        // 檢查棋盤上是否還有任何空間可以放得下現有的任何一個方塊
-        let possible = false;
-        visiblePieces.forEach(p => {
-            // 這裡需要從 HTML 元素中反推出 shape 資料，簡化起見直接檢查當前可見的選中或備選方塊
-            // (更嚴謹的做法是把目前待選的 shape 存入一個陣列)
-        });
-
-        // 簡化邏輯：如果任何一個可見方塊都放不下，就彈窗
-        // 為了效能，我們只在剩餘方塊真的卡住時觸發
         let canPlaceAny = false;
-        // 獲取目前畫面上顯示的方塊矩陣 (這裡需要稍微調整 render 邏輯來追蹤)
-        // 下面這段是為了實現「無位放」的檢測：
-        const currentShapes = []; 
-        // ... (省略複雜檢測，直接用 canPlace 遍歷棋盤)
         
-        // 快速遍歷檢查
-        // 這裡我們假設目前產生的 3 個方塊如果都放不下
-        // 實際開發中，我們會遍歷 grid[8][8] 嘗試 canPlace
-        // 由於代碼空間，我將這部分簡化為當剩餘方塊皆不可放置時觸發 revive-modal
-    }
-
-    // 真正的檢測邏輯
-    setInterval(() => {
-        const pieces = document.querySelectorAll('.piece');
-        let anyPieceCanFit = false;
-        
-        // 這裡因為 pieces 是 DOM，我們在 render 時把 shape 綁定到 DOM 上方便檢查
-        pieces.forEach(p => {
-            if (p.style.visibility !== 'hidden' && p.shapeData) {
+        currentShapes.forEach(s => {
+            if (!s.used) {
+                // 遍歷棋盤每一個格子試試能不能放
                 for (let r = 0; r < GRID_SIZE; r++) {
                     for (let c = 0; c < GRID_SIZE; c++) {
-                        if (canPlace(p.shapeData, r, c)) anyPieceCanFit = true;
+                        if (canPlace(s.shape, r, c)) {
+                            canPlaceAny = true;
+                        }
                     }
                 }
             }
         });
 
-        const activePieces = Array.from(pieces).filter(p => p.style.visibility !== 'hidden');
-        if (activePieces.length > 0 && !anyPieceCanFit) {
-            toggleModal('revive-modal', true);
+        // 只有在畫面上還有方塊，且全部都放不下的時候才彈窗
+        if (!canPlaceAny && currentShapes.some(s => !s.used)) {
+            setTimeout(() => toggleModal('revive-modal', true), 500);
         }
-    }, 1000);
+    }
 
-    function renderPieces(customShapes = null) {
-        const container = document.getElementById('pieces-container');
-        container.innerHTML = '';
-        for (let i = 0; i < 3; i++) {
-            const shapeList = customShapes || SHAPES;
-            const shape = shapeList[Math.floor(Math.random() * shapeList.length)];
-            const pieceEl = document.createElement('div');
-            pieceEl.className = 'piece';
-            pieceEl.shapeData = shape; // 綁定數據用於檢查
-            pieceEl.style.gridTemplateColumns = `repeat(${shape[0].length}, 20px)`;
-            
-            pieceEl.onclick = (e) => {
-                document.querySelectorAll('.piece').forEach(p => p.classList.remove('selected'));
-                pieceEl.classList.add('selected');
-                selectedPiece = shape;
-                e.stopPropagation();
-            };
-
-            shape.forEach(row => {
-                row.forEach(val => {
-                    const c = document.createElement('div');
-                    c.className = val ? 'piece-cell active' : 'piece-cell empty';
-                    pieceEl.appendChild(c);
-                });
-            });
-            container.appendChild(pieceEl);
-        }
+    function showSurprise() {
+        const heart = document.getElementById('heart-animation');
+        heart.classList.add('boom');
+        setTimeout(() => {
+            heart.classList.remove('boom');
+            document.getElementById('quote-text').innerText = quotes[Math.floor(Math.random() * quotes.length)];
+            toggleModal('quote-modal', true);
+        }, 600);
     }
 
     function useMagic() {
         toggleModal('revive-modal', false);
-        renderPieces(MAGIC_SHAPES); // 變出超簡單的小方塊
+        // 使用復活魔法：給媽咪變出最簡單的 1x1 或 1x2 方塊
+        renderPieces(MAGIC_SHAPES);
     }
 
     function updateUI() {
@@ -347,11 +304,6 @@
     }
 
     function toggleModal(id, show) { document.getElementById(id).classList.toggle('show', show); }
-
-    function showQuote() {
-        document.getElementById('quote-text').innerText = quotes[Math.floor(Math.random() * quotes.length)];
-        toggleModal('quote-modal', true);
-    }
 
     initGame();
 </script>
