@@ -26,22 +26,13 @@
 
         #header { margin-top: 15px; text-align: center; color: #ad1457; position: relative; width: 100%; }
 
-        /* 右上角說明按鈕 */
         #help-btn {
-            position: absolute;
-            right: 15px;
-            top: 5px;
-            width: 30px;
-            height: 30px;
-            background: var(--primary-pink);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: absolute; right: 15px; top: 5px;
+            width: 30px; height: 30px;
+            background: var(--primary-pink); color: white;
+            border-radius: 50%; display: flex;
+            justify-content: center; align-items: center;
+            font-weight: bold; cursor: pointer;
         }
 
         #grid {
@@ -66,54 +57,36 @@
 
         #pieces-container {
             margin-top: 25px;
-            display: flex;
-            gap: 15px;
+            display: flex; gap: 15px;
             height: 120px;
-            justify-content: center;
-            align-items: center;
+            justify-content: center; align-items: center;
             min-width: 300px;
         }
 
         .piece {
-            display: grid;
-            gap: 2px;
-            padding: 8px;
-            border: 2px solid transparent;
-            border-radius: 8px;
-            cursor: pointer;
-            background: rgba(255,255,255,0.4);
+            display: grid; gap: 2px; padding: 8px;
+            border: 2px solid transparent; border-radius: 8px;
+            cursor: pointer; background: rgba(255,255,255,0.4);
         }
 
-        .piece.selected {
-            border-color: var(--selected-color);
-            background: white;
-            transform: scale(1.1);
-        }
-
+        .piece.selected { border-color: var(--selected-color); background: white; transform: scale(1.1); }
         .piece-cell { width: 20px; height: 20px; border-radius: 3px; }
         .piece-cell.active { background-color: var(--primary-pink); }
         .piece-cell.empty { background-color: transparent; }
 
-        /* 通用彈窗樣式 */
+        /* 彈窗樣式 */
         .modal {
-            position: fixed;
-            top: 50%; left: 50%;
+            position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            background: white;
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            text-align: center;
-            z-index: 100;
+            background: white; padding: 25px;
+            border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center; z-index: 100;
             transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            width: 80%;
-            max-width: 320px;
+            width: 80%; max-width: 320px;
         }
 
         .modal.show { transform: translate(-50%, -50%) scale(1); }
         .modal h3 { color: #ad1457; margin-top: 0; }
-        .modal p { font-size: 0.95rem; line-height: 1.6; color: #555; }
-        
         .close-btn { 
             margin-top: 15px; padding: 10px 20px; 
             border-radius: 20px; border: none; 
@@ -121,7 +94,10 @@
             font-weight: bold; cursor: pointer;
         }
 
-        .highlight { color: #d81b60; font-weight: bold; text-decoration: underline; }
+        .magic-btn {
+            background: linear-gradient(45deg, #ff80ab, #f06292);
+            font-size: 1.1rem; padding: 12px 25px;
+        }
     </style>
 </head>
 <body>
@@ -129,7 +105,6 @@
 <div id="header">
     <div id="help-btn" onclick="toggleModal('help-modal', true)">?</div>
     <h3 style="margin: 0;">母親節快樂 ❤️</h3>
-    <p style="font-size: 0.8rem; margin: 5px 0;">媽咪專屬 Block Blast</p>
 </div>
 
 <div id="grid"></div>
@@ -138,12 +113,16 @@
 <!-- 說明彈窗 -->
 <div id="help-modal" class="modal">
     <h3>如何玩？ 💡</h3>
-    <p>1. 點擊下方方塊來<span class="highlight">選取</span>它。</p>
-    <p>2. 點擊上方格子的<span class="highlight">左上角位置</span>來放置方塊。</p>
-    <p style="font-size: 0.8rem; background: #fff3f8; padding: 10px; border-radius: 10px;">
-        提示：無論形狀多大，只需點擊你想放置區域的「最左上角」那格即可！
-    </p>
-    <button class="close-btn" onclick="toggleModal('help-modal', false)">明白晒！</button>
+    <p>1. 點擊方塊選取。<br>2. 點擊格子的<span style="color: #d81b60; font-weight: bold;">左上角</span>放置。</p>
+    <button class="close-btn" onclick="toggleModal('help-modal', false)">知道喇</button>
+</div>
+
+<!-- 復活彈窗 -->
+<div id="revive-modal" class="modal">
+    <div style="font-size: 3rem;">🪄</div>
+    <h3>無位放喇？</h3>
+    <p>媽咪唔使驚，送妳一個<br><b>「愛心變變變」</b>魔法！</p>
+    <button class="close-btn magic-btn" onclick="useMagic()">變細粒方塊 ✨</button>
 </div>
 
 <!-- 語錄彈窗 -->
@@ -164,12 +143,13 @@
         [[1, 1, 1], [0, 1, 0]], [[1, 1], [1, 0]], [[1]]
     ];
 
+    const MAGIC_SHAPES = [[[1]], [[1, 1]], [[1], [1]]];
+
     const quotes = [
-        "媽咪，多謝妳咁多年嘅照顧！❤️",
-        "祝媽咪母親節快樂，日日都咁靚！",
-        "雖然我唔喺身邊，但我心裡面好掛住妳！",
-        "媽咪消得好快！我對妳嘅愛又爆燈喇！",
-        "妳係全家最重要嘅支柱，辛苦晒妳！"
+        "媽咪，多謝妳咁錫我！❤️",
+        "祝媽咪母親節快樂，日日開心！",
+        "雖然我唔喺澳門，但我心裡一直掛住妳！",
+        "媽咪，妳玩 Block Blast 嘅技術真係進步神速！"
     ];
 
     function initGame() {
@@ -187,11 +167,12 @@
         renderPieces();
     }
 
-    function renderPieces() {
+    function renderPieces(customShapes = null) {
         const container = document.getElementById('pieces-container');
         container.innerHTML = '';
         for (let i = 0; i < 3; i++) {
-            const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+            const shapeList = customShapes || SHAPES;
+            const shape = shapeList[Math.floor(Math.random() * shapeList.length)];
             const pieceEl = document.createElement('div');
             pieceEl.className = 'piece';
             pieceEl.style.gridTemplateColumns = `repeat(${shape[0].length}, 20px)`;
@@ -212,6 +193,7 @@
             });
             container.appendChild(pieceEl);
         }
+        checkGameOver();
     }
 
     function handleCellClick(r, c) {
@@ -223,8 +205,12 @@
             sel.classList.remove('selected');
             selectedPiece = null;
             checkLines();
-            if (Array.from(document.querySelectorAll('.piece')).every(p => p.style.visibility === 'hidden')) {
+            
+            const visiblePieces = Array.from(document.querySelectorAll('.piece')).filter(p => p.style.visibility !== 'hidden');
+            if (visiblePieces.length === 0) {
                 renderPieces();
+            } else {
+                checkGameOver();
             }
         }
     }
@@ -268,6 +254,89 @@
         }
     }
 
+    function checkGameOver() {
+        const visiblePieces = Array.from(document.querySelectorAll('.piece'))
+            .filter(p => p.style.visibility !== 'hidden');
+        
+        if (visiblePieces.length === 0) return;
+
+        // 檢查棋盤上是否還有任何空間可以放得下現有的任何一個方塊
+        let possible = false;
+        visiblePieces.forEach(p => {
+            // 這裡需要從 HTML 元素中反推出 shape 資料，簡化起見直接檢查當前可見的選中或備選方塊
+            // (更嚴謹的做法是把目前待選的 shape 存入一個陣列)
+        });
+
+        // 簡化邏輯：如果任何一個可見方塊都放不下，就彈窗
+        // 為了效能，我們只在剩餘方塊真的卡住時觸發
+        let canPlaceAny = false;
+        // 獲取目前畫面上顯示的方塊矩陣 (這裡需要稍微調整 render 邏輯來追蹤)
+        // 下面這段是為了實現「無位放」的檢測：
+        const currentShapes = []; 
+        // ... (省略複雜檢測，直接用 canPlace 遍歷棋盤)
+        
+        // 快速遍歷檢查
+        // 這裡我們假設目前產生的 3 個方塊如果都放不下
+        // 實際開發中，我們會遍歷 grid[8][8] 嘗試 canPlace
+        // 由於代碼空間，我將這部分簡化為當剩餘方塊皆不可放置時觸發 revive-modal
+    }
+
+    // 真正的檢測邏輯
+    setInterval(() => {
+        const pieces = document.querySelectorAll('.piece');
+        let anyPieceCanFit = false;
+        
+        // 這裡因為 pieces 是 DOM，我們在 render 時把 shape 綁定到 DOM 上方便檢查
+        pieces.forEach(p => {
+            if (p.style.visibility !== 'hidden' && p.shapeData) {
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        if (canPlace(p.shapeData, r, c)) anyPieceCanFit = true;
+                    }
+                }
+            }
+        });
+
+        const activePieces = Array.from(pieces).filter(p => p.style.visibility !== 'hidden');
+        if (activePieces.length > 0 && !anyPieceCanFit) {
+            toggleModal('revive-modal', true);
+        }
+    }, 1000);
+
+    function renderPieces(customShapes = null) {
+        const container = document.getElementById('pieces-container');
+        container.innerHTML = '';
+        for (let i = 0; i < 3; i++) {
+            const shapeList = customShapes || SHAPES;
+            const shape = shapeList[Math.floor(Math.random() * shapeList.length)];
+            const pieceEl = document.createElement('div');
+            pieceEl.className = 'piece';
+            pieceEl.shapeData = shape; // 綁定數據用於檢查
+            pieceEl.style.gridTemplateColumns = `repeat(${shape[0].length}, 20px)`;
+            
+            pieceEl.onclick = (e) => {
+                document.querySelectorAll('.piece').forEach(p => p.classList.remove('selected'));
+                pieceEl.classList.add('selected');
+                selectedPiece = shape;
+                e.stopPropagation();
+            };
+
+            shape.forEach(row => {
+                row.forEach(val => {
+                    const c = document.createElement('div');
+                    c.className = val ? 'piece-cell active' : 'piece-cell empty';
+                    pieceEl.appendChild(c);
+                });
+            });
+            container.appendChild(pieceEl);
+        }
+    }
+
+    function useMagic() {
+        toggleModal('revive-modal', false);
+        renderPieces(MAGIC_SHAPES); // 變出超簡單的小方塊
+    }
+
     function updateUI() {
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
@@ -277,9 +346,7 @@
         }
     }
 
-    function toggleModal(id, show) {
-        document.getElementById(id).classList.toggle('show', show);
-    }
+    function toggleModal(id, show) { document.getElementById(id).classList.toggle('show', show); }
 
     function showQuote() {
         document.getElementById('quote-text').innerText = quotes[Math.floor(Math.random() * quotes.length)];
